@@ -58,7 +58,9 @@ extension LLMPostProcessingClient: DependencyKey {
 
           let model = configuration.model.trimmingCharacters(in: .whitespacesAndNewlines)
           let promptPrefix = configuration.promptPrefix.trimmingCharacters(in: .whitespacesAndNewlines)
-          let prompt = promptPrefix.isEmpty ? text : "\(promptPrefix)\n\n\(text)"
+          let prompt = promptPrefix.isEmpty
+            ? text
+            : "\(promptPrefix)\n\nTranscript:\n```\n\(text)\n```"
           let requestBody = OpenAIChatCompletionsRequest(
             model: model,
             messages: [

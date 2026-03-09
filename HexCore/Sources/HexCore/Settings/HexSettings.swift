@@ -88,7 +88,13 @@ public struct HexSettings: Codable, Equatable, Sendable {
 		wordRemovals: [WordRemoval] = HexSettings.defaultWordRemovals,
 		wordRemappings: [WordRemapping] = [],
 		llmPostProcessingEnabled: Bool = false,
-		llmPromptPrefix: String = "Clean up this transcript for readability while preserving intent. Return only the final text.",
+		llmPromptPrefix: String = """
+		Clean up this transcript for readability while preserving intent and tone. Return only the cleaned transcript.
+
+		Grammar & fillers: Fix grammar, remove fillers/stutters, and collapse repetitions. Keep names and numbers.
+		Self-corrections: Remove the incorrect part; keep only the final corrected version. (e.g. "Call David, wait no, call Sarah" -> "Call Sarah")
+		Explicit punctuation/formatting: Convert explicit punctuation and formatting commands (e.g. "colon", "comma", "period", "question mark", "quotation marks",... ) to their respective formatting.
+		""",
 		llmProvider: LLMProvider = .openAICompatible,
 		llmModel: String = "gpt-4o-mini",
 		llmAPIKey: String = "",
