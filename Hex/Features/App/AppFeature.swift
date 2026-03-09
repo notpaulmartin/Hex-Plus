@@ -272,20 +272,20 @@ struct AppView: View {
         .tag(AppFeature.ActiveTab.settings)
 
         Button {
-          store.send(.setActiveTab(.llm))
-        } label: {
-          Label("LLM", systemImage: "sparkles")
-        }
-        .buttonStyle(.plain)
-        .tag(AppFeature.ActiveTab.llm)
-
-        Button {
           store.send(.setActiveTab(.remappings))
         } label: {
           Label("Transforms", systemImage: "text.badge.plus")
         }
         .buttonStyle(.plain)
         .tag(AppFeature.ActiveTab.remappings)
+
+        Button {
+          store.send(.setActiveTab(.llm))
+        } label: {
+          Label("LLM", systemImage: "sparkles")
+        }
+        .buttonStyle(.plain)
+        .tag(AppFeature.ActiveTab.llm)
 
         Button {
           store.send(.setActiveTab(.history))

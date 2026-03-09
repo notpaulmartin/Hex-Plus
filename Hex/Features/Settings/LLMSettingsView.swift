@@ -8,33 +8,42 @@ struct LLMSettingsView: View {
 
   var body: some View {
     Form {
-      Section("LLM Post-processing") {
-        Toggle("Enable LLM Post-processing", isOn: $store.hexSettings.llmPostProcessingEnabled)
-        Text("When enabled, transcription output is sent to the configured LLM before insertion.")
-          .settingsCaption()
-      }
-
-      Section("Prompt") {
-        TextField(
-          "Prompt to prepend before the transcript",
-          text: $store.hexSettings.llmPromptPrefix,
-          axis: .vertical
-        )
-        .lineLimit(3...8)
-
-        Text("This prompt is prepended to the transcribed text for each LLM request.")
-          .settingsCaption()
-      }
-
-      Section("AI Provider Settings") {
-        Picker("Provider", selection: $store.hexSettings.llmProvider) {
-          Text("OpenAI Compatible").tag(LLMProvider.openAICompatible)
+      Section {
+        Label {
+          Toggle("Enable LLM Post-processing", isOn: $store.hexSettings.llmPostProcessingEnabled)
+          Text("After transcription, send the result to an AI model to fix grammar, remove fillers, and reformat output.")
+            .settingsCaption()
+        } icon: {
+          Image(systemName: "sparkles")
         }
-        .pickerStyle(.menu)
+      }
 
+      Section {
         SecureField("API Key", text: $store.hexSettings.llmAPIKey)
         TextField("Model", text: $store.hexSettings.llmModel)
-        TextField("Endpoint URL", text: $store.hexSettings.llmBaseURL)
+        TextField("Base URL", text: $store.hexSettings.llmBaseURL)
+        Text("Compatible with OpenAI, Groq, Ollama, and any OpenAI-compatible endpoint.")
+          .settingsCaption()
+      } header: {
+        Text("Provider")
+      }
+
+      Section {
+        TextEditor(text: $store.hexSettings.llmPromptPrefix)
+          .font(.body)
+          .frame(minHeight: 120)
+          .scrollContentBackground(.hidden)
+          .padding(6)
+          .background(Color(nsColor: .textBackgroundColor))
+          .clipShape(RoundedRectangle(cornerRadius: 6))
+          .overlay(
+            RoundedRectangle(cornerRadius: 6)
+              .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
+          )
+        Text("Prepended to each request. Leave empty to send the transcript without instructions.")
+          .settingsCaption()
+      } header: {
+        Text("Prompt")
       }
     }
     .formStyle(.grouped)
