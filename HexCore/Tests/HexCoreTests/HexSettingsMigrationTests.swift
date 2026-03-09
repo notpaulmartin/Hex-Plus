@@ -24,6 +24,12 @@ final class HexSettingsMigrationTests: XCTestCase {
 		XCTAssertEqual(decoded.maxHistoryEntries, 10)
 		XCTAssertEqual(decoded.hasCompletedModelBootstrap, true)
 		XCTAssertEqual(decoded.hasCompletedStorageMigration, true)
+		XCTAssertFalse(decoded.llmPostProcessingEnabled)
+		XCTAssertEqual(decoded.llmPromptPrefix, HexSettings().llmPromptPrefix)
+		XCTAssertEqual(decoded.llmProvider, .openAICompatible)
+		XCTAssertEqual(decoded.llmModel, "gpt-4o-mini")
+		XCTAssertEqual(decoded.llmAPIKey, "")
+		XCTAssertEqual(decoded.llmBaseURL, "https://api.openai.com/v1/chat/completions")
 	}
 
 	func testEncodeDecodeRoundTripPreservesDefaults() throws {

@@ -83,8 +83,8 @@ actor TranscriptionClientLive {
         appropriateFor: nil,
         create: true
       )
-      // Typically: .../Application Support/com.kitlangton.Hex
-      let ourAppFolder = appSupportURL.appendingPathComponent("com.kitlangton.Hex", isDirectory: true)
+      // Typically: .../Application Support/com.notpaul.HexPlus
+      let ourAppFolder = appSupportURL.appendingPathComponent("com.notpaul.HexPlus", isDirectory: true)
       // Inside there, store everything in /models
       let baseURL = ourAppFolder.appendingPathComponent("models", isDirectory: true)
       try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)

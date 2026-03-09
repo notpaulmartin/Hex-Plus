@@ -15,6 +15,17 @@ import WhisperKit
 
 private let transcriptionFeatureLogger = HexLog.transcription
 
+private enum TranscriptionTimeoutError: LocalizedError {
+  case timedOut(seconds: Int)
+
+  var errorDescription: String? {
+    switch self {
+    case let .timedOut(seconds):
+      return "Transcription timed out after \(seconds) seconds."
+    }
+  }
+}
+
 @Reducer
 struct TranscriptionFeature {
   @ObservableState
@@ -70,6 +81,7 @@ struct TranscriptionFeature {
   @Dependency(\.sleepManagement) var sleepManagement
   @Dependency(\.date.now) var now
   @Dependency(\.transcriptPersistence) var transcriptPersistence
+  @Dependency(\.llmPostProcessing) var llmPostProcessing
 
   var body: some ReducerOf<Self> {
     Reduce { state, action in
@@ -277,6 +289,8 @@ private extension TranscriptionFeature {
 // MARK: - Recording Handlers
 
 private extension TranscriptionFeature {
+  static let transcriptionTimeoutSeconds = 90
+
   func handleStartRecording(_ state: inout State) -> Effect<Action> {
     guard state.modelBootstrapState.isModelReady else {
       return .merge(
@@ -367,7 +381,19 @@ private extension TranscriptionFeature {
           chunkingStrategy: .vad,
         )
         
-        let result = try await transcription.transcribe(capturedURL, model, decodeOptions) { _ in }
+        let result = try await withThrowingTaskGroup(of: String.self) { group in
+          group.addTask {
+            try await transcription.transcribe(capturedURL, model, decodeOptions) { _ in }
+          }
+          group.addTask {
+            try await Task.sleep(for: .seconds(TranscriptionFeature.transcriptionTimeoutSeconds))
+            throw TranscriptionTimeoutError.timedOut(seconds: TranscriptionFeature.transcriptionTimeoutSeconds)
+          }
+
+          let first = try await group.next()!
+          group.cancelAll()
+          return first
+        }
         
         transcriptionFeatureLogger.notice("Transcribed audio from \(capturedURL.lastPathComponent) to text length \(result.count)")
         await send(.transcriptionResult(result, capturedURL))
@@ -441,11 +467,31 @@ private extension TranscriptionFeature {
     let sourceAppBundleID = state.sourceAppBundleID
     let sourceAppName = state.sourceAppName
     let transcriptionHistory = state.$transcriptionHistory
+    let llmEnabled = state.hexSettings.llmPostProcessingEnabled
+    let llmConfiguration = LLMPostProcessingConfiguration(
+      promptPrefix: state.hexSettings.llmPromptPrefix,
+      provider: state.hexSettings.llmProvider,
+      model: state.hexSettings.llmModel,
+      apiKey: state.hexSettings.llmAPIKey,
+      baseURL: state.hexSettings.llmBaseURL
+    )
 
     return .run { send in
+      var finalResult = modifiedResult
+      if llmEnabled {
+        do {
+          finalResult = try await llmPostProcessing.process(modifiedResult, llmConfiguration)
+          transcriptionFeatureLogger.info("Applied LLM post-processing to transcription")
+        } catch {
+          transcriptionFeatureLogger.error(
+            "LLM post-processing failed. Using raw transcription: \(error.localizedDescription, privacy: .public)"
+          )
+        }
+      }
+
       do {
         try await finalizeRecordingAndStoreTranscript(
-          result: modifiedResult,
+          result: finalResult,
           duration: duration,
           sourceAppBundleID: sourceAppBundleID,
           sourceAppName: sourceAppName,

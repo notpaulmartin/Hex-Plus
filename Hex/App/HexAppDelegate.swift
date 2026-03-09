@@ -64,7 +64,7 @@ class HexAppDelegate: NSObject, NSApplicationDelegate {
                 appropriateFor: nil,
                 create: true
             )
-            let cache = support.appendingPathComponent("com.kitlangton.Hex/cache", isDirectory: true)
+            let cache = support.appendingPathComponent("com.notpaul.HexPlus/cache", isDirectory: true)
             try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: true)
             setenv("XDG_CACHE_HOME", cache.path, 1)
             cacheLogger.info("XDG_CACHE_HOME set to \(cache.path)")

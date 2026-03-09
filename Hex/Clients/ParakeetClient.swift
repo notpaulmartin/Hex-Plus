@@ -10,7 +10,7 @@ actor ParakeetClient {
   private var currentVariant: ParakeetModel?
   private let logger = HexLog.parakeet
   private let vendorDirs = [
-    // Our app-specific cache path convention (under XDG or com.kitlangton.Hex/cache)
+    // Our app-specific cache path convention (under XDG or com.notpaul.HexPlus/cache)
     "fluidaudio/Models",
     "FluidAudio/Models",
     // FluidAudio default under Application Support root
@@ -166,7 +166,7 @@ actor ParakeetClient {
     let fm = FileManager.default
     let xdg = ProcessInfo.processInfo.environment["XDG_CACHE_HOME"].flatMap { URL(fileURLWithPath: $0, isDirectory: true) }
     let appSupport = try? fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-    let appCache = appSupport?.appendingPathComponent("com.kitlangton.Hex/cache", isDirectory: true)
+    let appCache = appSupport?.appendingPathComponent("com.notpaul.HexPlus/cache", isDirectory: true)
     let userCache = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".cache", isDirectory: true)
     return [xdg, appCache, appSupport, userCache].compactMap { $0 }
   }

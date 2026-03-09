@@ -15,6 +15,7 @@ import SwiftUI
 struct AppFeature {
   enum ActiveTab: Equatable {
     case settings
+    case llm
     case remappings
     case history
     case about
@@ -271,6 +272,14 @@ struct AppView: View {
         .tag(AppFeature.ActiveTab.settings)
 
         Button {
+          store.send(.setActiveTab(.llm))
+        } label: {
+          Label("LLM", systemImage: "sparkles")
+        }
+        .buttonStyle(.plain)
+        .tag(AppFeature.ActiveTab.llm)
+
+        Button {
           store.send(.setActiveTab(.remappings))
         } label: {
           Label("Transforms", systemImage: "text.badge.plus")
@@ -304,6 +313,9 @@ struct AppView: View {
           inputMonitoringPermission: store.inputMonitoringPermission
         )
         .navigationTitle("Settings")
+      case .llm:
+        LLMSettingsView(store: store.scope(state: \.settings, action: \.settings))
+          .navigationTitle("LLM")
       case .remappings:
         WordRemappingsView(store: store.scope(state: \.settings, action: \.settings))
           .navigationTitle("Transforms")

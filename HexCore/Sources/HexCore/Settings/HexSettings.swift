@@ -6,6 +6,10 @@ public enum RecordingAudioBehavior: String, Codable, CaseIterable, Equatable, Se
 	case doNothing
 }
 
+public enum LLMProvider: String, Codable, CaseIterable, Equatable, Sendable {
+	case openAICompatible
+}
+
 /// User-configurable settings saved to disk.
 public struct HexSettings: Codable, Equatable, Sendable {
 	public static let defaultPasteLastTranscriptHotkey = HotKey(key: .v, modifiers: [.option, .shift])
@@ -46,6 +50,12 @@ public struct HexSettings: Codable, Equatable, Sendable {
 	public var wordRemovalsEnabled: Bool
 	public var wordRemovals: [WordRemoval]
 	public var wordRemappings: [WordRemapping]
+	public var llmPostProcessingEnabled: Bool
+	public var llmPromptPrefix: String
+	public var llmProvider: LLMProvider
+	public var llmModel: String
+	public var llmAPIKey: String
+	public var llmBaseURL: String
 
 	private mutating func normalizeDoubleTapSettings() {
 		if !doubleTapLockEnabled {
@@ -76,7 +86,13 @@ public struct HexSettings: Codable, Equatable, Sendable {
 		hasCompletedStorageMigration: Bool = false,
 		wordRemovalsEnabled: Bool = false,
 		wordRemovals: [WordRemoval] = HexSettings.defaultWordRemovals,
-		wordRemappings: [WordRemapping] = []
+		wordRemappings: [WordRemapping] = [],
+		llmPostProcessingEnabled: Bool = false,
+		llmPromptPrefix: String = "Clean up this transcript for readability while preserving intent. Return only the final text.",
+		llmProvider: LLMProvider = .openAICompatible,
+		llmModel: String = "gpt-4o-mini",
+		llmAPIKey: String = "",
+		llmBaseURL: String = "https://api.openai.com/v1/chat/completions"
 	) {
 		self.soundEffectsEnabled = soundEffectsEnabled
 		self.soundEffectsVolume = soundEffectsVolume
@@ -101,6 +117,12 @@ public struct HexSettings: Codable, Equatable, Sendable {
 		self.wordRemovalsEnabled = wordRemovalsEnabled
 		self.wordRemovals = wordRemovals
 		self.wordRemappings = wordRemappings
+		self.llmPostProcessingEnabled = llmPostProcessingEnabled
+		self.llmPromptPrefix = llmPromptPrefix
+		self.llmProvider = llmProvider
+		self.llmModel = llmModel
+		self.llmAPIKey = llmAPIKey
+		self.llmBaseURL = llmBaseURL
 		normalizeDoubleTapSettings()
 	}
 
@@ -148,6 +170,12 @@ private enum HexSettingKey: String, CodingKey, CaseIterable {
 	case wordRemovalsEnabled
 	case wordRemovals
 	case wordRemappings
+	case llmPostProcessingEnabled
+	case llmPromptPrefix
+	case llmProvider
+	case llmModel
+	case llmAPIKey
+	case llmBaseURL
 }
 
 private struct SettingsField<Value: Codable & Sendable> {
@@ -279,6 +307,36 @@ private enum HexSettingsSchema {
 			.wordRemappings,
 			keyPath: \.wordRemappings,
 			default: defaults.wordRemappings
+		).eraseToAny(),
+		SettingsField(
+			.llmPostProcessingEnabled,
+			keyPath: \.llmPostProcessingEnabled,
+			default: defaults.llmPostProcessingEnabled
+		).eraseToAny(),
+		SettingsField(
+			.llmPromptPrefix,
+			keyPath: \.llmPromptPrefix,
+			default: defaults.llmPromptPrefix
+		).eraseToAny(),
+		SettingsField(
+			.llmProvider,
+			keyPath: \.llmProvider,
+			default: defaults.llmProvider
+		).eraseToAny(),
+		SettingsField(
+			.llmModel,
+			keyPath: \.llmModel,
+			default: defaults.llmModel
+		).eraseToAny(),
+		SettingsField(
+			.llmAPIKey,
+			keyPath: \.llmAPIKey,
+			default: defaults.llmAPIKey
+		).eraseToAny(),
+		SettingsField(
+			.llmBaseURL,
+			keyPath: \.llmBaseURL,
+			default: defaults.llmBaseURL
 		).eraseToAny()
 	]
 }
