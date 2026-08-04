@@ -11,7 +11,9 @@ final class HexSettingsMigrationTests: XCTestCase {
 		XCTAssertEqual(decoded.soundEffectsVolume, HexSettings.baseSoundEffectsVolume)
 		XCTAssertEqual(decoded.openOnLogin, true)
 		XCTAssertEqual(decoded.showDockIcon, false)
+		XCTAssertEqual(decoded.transcriptionBackend, .local)
 		XCTAssertEqual(decoded.selectedModel, "whisper-large-v3")
+		XCTAssertEqual(decoded.groqTranscriptionModel, .whisperLargeV3Turbo)
 		XCTAssertEqual(decoded.useClipboardPaste, false)
 		XCTAssertEqual(decoded.preventSystemSleep, true)
 		XCTAssertEqual(decoded.minimumKeyTime, 0.25)
@@ -37,6 +39,18 @@ final class HexSettingsMigrationTests: XCTestCase {
 		let data = try JSONEncoder().encode(settings)
 		let decoded = try JSONDecoder().decode(HexSettings.self, from: data)
 		XCTAssertEqual(decoded, settings)
+	}
+
+	func testEncodeDecodeRoundTripPreservesGroqConfiguration() throws {
+		let settings = HexSettings(
+			transcriptionBackend: .groq,
+			groqTranscriptionModel: .whisperLargeV3
+		)
+		let data = try JSONEncoder().encode(settings)
+		let decoded = try JSONDecoder().decode(HexSettings.self, from: data)
+
+		XCTAssertEqual(decoded.transcriptionBackend, .groq)
+		XCTAssertEqual(decoded.groqTranscriptionModel, .whisperLargeV3)
 	}
 
 	func testInitNormalizesDoubleTapOnlyWhenLockDisabled() {

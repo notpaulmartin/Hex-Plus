@@ -30,6 +30,10 @@ extension SharedReaderKey
 
 @Reducer
 struct SettingsFeature {
+  private enum CancelID {
+    case groqAPIKeySave
+  }
+
   @ObservableState
   struct State {
     @Shared(.hexSettings) var hexSettings: HexSettings
@@ -51,6 +55,8 @@ struct SettingsFeature {
     // Model Management
     var modelDownload = ModelDownloadFeature.State()
     var shouldFlashModelSection = false
+    var groqAPIKey = ""
+    var groqAPIKeyError: String?
 
   }
 
@@ -78,6 +84,10 @@ struct SettingsFeature {
 
     // Model Management
     case modelDownload(ModelDownloadFeature.Action)
+    case selectTranscriptionBackend(TranscriptionBackend)
+    case groqAPIKeyLoaded(Result<String, Error>)
+    case groqAPIKeyChanged(String)
+    case groqAPIKeySaved(Result<Void, Error>)
     
     // History Management
     case toggleSaveTranscriptionHistory(Bool)
@@ -98,6 +108,7 @@ struct SettingsFeature {
   @Dependency(\.transcription) var transcription
   @Dependency(\.recording) var recording
   @Dependency(\.permissions) var permissions
+  @Dependency(\.groqAPIKey) var groqAPIKey
 
   var body: some ReducerOf<Self> {
     BindingReducer()
@@ -133,6 +144,7 @@ struct SettingsFeature {
 
         // Listen for key events and load microphones (existing + new)
         return .run { send in
+          await send(.groqAPIKeyLoaded(Result { try groqAPIKey.load() }))
           await send(.modelDownload(.fetchModels))
           await send(.loadAvailableInputDevices)
           
@@ -191,6 +203,65 @@ struct SettingsFeature {
           
           deviceRefreshTask.cancel()
         }
+
+      case let .selectTranscriptionBackend(backend):
+        state.$hexSettings.withLock { $0.transcriptionBackend = backend }
+        state.modelDownload.$modelBootstrapState.withLock { bootstrap in
+          switch backend {
+          case .local:
+            bootstrap.modelIdentifier = state.hexSettings.selectedModel
+            bootstrap.modelDisplayName = state.hexSettings.selectedModel
+            bootstrap.isModelReady = state.modelDownload.selectedModelIsDownloaded
+            bootstrap.lastError = nil
+            bootstrap.progress = bootstrap.isModelReady ? 1 : 0
+          case .groq:
+            bootstrap.modelIdentifier = state.hexSettings.groqTranscriptionModel.rawValue
+            bootstrap.modelDisplayName = "Groq · \(state.hexSettings.groqTranscriptionModel.displayName)"
+            bootstrap.isModelReady = !state.groqAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            bootstrap.lastError = nil
+            bootstrap.progress = bootstrap.isModelReady ? 1 : 0
+          }
+        }
+        return .none
+
+      case let .groqAPIKeyLoaded(.success(apiKey)):
+        state.groqAPIKey = apiKey
+        state.groqAPIKeyError = nil
+        if state.hexSettings.transcriptionBackend == .groq {
+          state.modelDownload.$modelBootstrapState.withLock {
+            $0.isModelReady = !apiKey.isEmpty
+            $0.progress = apiKey.isEmpty ? 0 : 1
+          }
+        }
+        return .none
+
+      case let .groqAPIKeyLoaded(.failure(error)):
+        state.groqAPIKeyError = error.localizedDescription
+        return .none
+
+      case let .groqAPIKeyChanged(apiKey):
+        state.groqAPIKey = apiKey
+        state.groqAPIKeyError = nil
+        if state.hexSettings.transcriptionBackend == .groq {
+          state.modelDownload.$modelBootstrapState.withLock {
+            $0.isModelReady = !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            $0.progress = $0.isModelReady ? 1 : 0
+          }
+        }
+        return .run { send in
+          try? await clock.sleep(for: .milliseconds(300))
+          guard !Task.isCancelled else { return }
+          await send(.groqAPIKeySaved(Result { try groqAPIKey.save(apiKey) }))
+        }
+        .cancellable(id: CancelID.groqAPIKeySave, cancelInFlight: true)
+
+      case .groqAPIKeySaved(.success):
+        state.groqAPIKeyError = nil
+        return .none
+
+      case let .groqAPIKeySaved(.failure(error)):
+        state.groqAPIKeyError = error.localizedDescription
+        return .none
 
       case .startSettingHotKey:
         state.$isSettingHotKey.withLock { $0 = true }

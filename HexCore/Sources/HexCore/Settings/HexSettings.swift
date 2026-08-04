@@ -10,6 +10,23 @@ public enum LLMProvider: String, Codable, CaseIterable, Equatable, Sendable {
 	case openAICompatible
 }
 
+public enum TranscriptionBackend: String, Codable, CaseIterable, Equatable, Sendable {
+	case local
+	case groq
+}
+
+public enum GroqTranscriptionModel: String, Codable, CaseIterable, Equatable, Sendable {
+	case whisperLargeV3Turbo = "whisper-large-v3-turbo"
+	case whisperLargeV3 = "whisper-large-v3"
+
+	public var displayName: String {
+		switch self {
+		case .whisperLargeV3Turbo: "Whisper Large v3 Turbo"
+		case .whisperLargeV3: "Whisper Large v3"
+		}
+	}
+}
+
 /// User-configurable settings saved to disk.
 public struct HexSettings: Codable, Equatable, Sendable {
 	public static let defaultPasteLastTranscriptHotkey = HotKey(key: .v, modifiers: [.option, .shift])
@@ -32,7 +49,9 @@ public struct HexSettings: Codable, Equatable, Sendable {
 	public var hotkey: HotKey
 	public var openOnLogin: Bool
 	public var showDockIcon: Bool
+	public var transcriptionBackend: TranscriptionBackend
 	public var selectedModel: String
+	public var groqTranscriptionModel: GroqTranscriptionModel
 	public var useClipboardPaste: Bool
 	public var preventSystemSleep: Bool
 	public var recordingAudioBehavior: RecordingAudioBehavior
@@ -69,7 +88,9 @@ public struct HexSettings: Codable, Equatable, Sendable {
 		hotkey: HotKey = .init(key: nil, modifiers: [.option]),
 		openOnLogin: Bool = false,
 		showDockIcon: Bool = true,
+		transcriptionBackend: TranscriptionBackend = .local,
 		selectedModel: String = ParakeetModel.multilingualV3.identifier,
+		groqTranscriptionModel: GroqTranscriptionModel = .whisperLargeV3Turbo,
 		useClipboardPaste: Bool = true,
 		preventSystemSleep: Bool = true,
 		recordingAudioBehavior: RecordingAudioBehavior = .doNothing,
@@ -105,7 +126,9 @@ public struct HexSettings: Codable, Equatable, Sendable {
 		self.hotkey = hotkey
 		self.openOnLogin = openOnLogin
 		self.showDockIcon = showDockIcon
+		self.transcriptionBackend = transcriptionBackend
 		self.selectedModel = selectedModel
+		self.groqTranscriptionModel = groqTranscriptionModel
 		self.useClipboardPaste = useClipboardPaste
 		self.preventSystemSleep = preventSystemSleep
 		self.recordingAudioBehavior = recordingAudioBehavior
@@ -157,7 +180,9 @@ private enum HexSettingKey: String, CodingKey, CaseIterable {
 	case hotkey
 	case openOnLogin
 	case showDockIcon
+	case transcriptionBackend
 	case selectedModel
+	case groqTranscriptionModel
 	case useClipboardPaste
 	case preventSystemSleep
 	case recordingAudioBehavior
@@ -247,7 +272,9 @@ private enum HexSettingsSchema {
 		SettingsField(.hotkey, keyPath: \.hotkey, default: defaults.hotkey).eraseToAny(),
 		SettingsField(.openOnLogin, keyPath: \.openOnLogin, default: defaults.openOnLogin).eraseToAny(),
 		SettingsField(.showDockIcon, keyPath: \.showDockIcon, default: defaults.showDockIcon).eraseToAny(),
+		SettingsField(.transcriptionBackend, keyPath: \.transcriptionBackend, default: defaults.transcriptionBackend).eraseToAny(),
 		SettingsField(.selectedModel, keyPath: \.selectedModel, default: defaults.selectedModel).eraseToAny(),
+		SettingsField(.groqTranscriptionModel, keyPath: \.groqTranscriptionModel, default: defaults.groqTranscriptionModel).eraseToAny(),
 		SettingsField(.useClipboardPaste, keyPath: \.useClipboardPaste, default: defaults.useClipboardPaste).eraseToAny(),
 		SettingsField(.preventSystemSleep, keyPath: \.preventSystemSleep, default: defaults.preventSystemSleep).eraseToAny(),
 		SettingsField(

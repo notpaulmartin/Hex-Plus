@@ -59,6 +59,7 @@ struct AppFeature {
   @Dependency(\.pasteboard) var pasteboard
   @Dependency(\.transcription) var transcription
   @Dependency(\.permissions) var permissions
+  @Dependency(\.groqAPIKey) var groqAPIKey
 
   var body: some ReducerOf<Self> {
     BindingReducer()
@@ -216,6 +217,20 @@ struct AppFeature {
     .run { send in
       @Shared(.hexSettings) var hexSettings: HexSettings
       @Shared(.modelBootstrapState) var modelBootstrapState: ModelBootstrapState
+      if hexSettings.transcriptionBackend == .groq {
+        let model = hexSettings.groqTranscriptionModel
+        let storedKey = (try? groqAPIKey.load()) ?? ""
+        let isReady = !storedKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        $modelBootstrapState.withLock { state in
+          state.modelIdentifier = model.rawValue
+          state.modelDisplayName = "Groq · \(model.displayName)"
+          state.isModelReady = isReady
+          state.lastError = nil
+          state.progress = isReady ? 1 : 0
+        }
+        await send(.modelStatusEvaluated(isReady))
+        return
+      }
       let selectedModel = hexSettings.selectedModel
       guard !selectedModel.isEmpty else {
         await send(.modelStatusEvaluated(false))

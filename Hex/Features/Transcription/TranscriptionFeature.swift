@@ -82,6 +82,8 @@ struct TranscriptionFeature {
   @Dependency(\.date.now) var now
   @Dependency(\.transcriptPersistence) var transcriptPersistence
   @Dependency(\.llmPostProcessing) var llmPostProcessing
+  @Dependency(\.groqTranscription) var groqTranscription
+  @Dependency(\.groqAPIKey) var groqAPIKey
 
   var body: some ReducerOf<Self> {
     Reduce { state, action in
@@ -360,6 +362,8 @@ private extension TranscriptionFeature {
     state.error = nil
     let model = state.hexSettings.selectedModel
     let language = state.hexSettings.outputLanguage
+    let backend = state.hexSettings.transcriptionBackend
+    let groqModel = state.hexSettings.groqTranscriptionModel
 
     state.isPrewarming = true
 
@@ -383,7 +387,16 @@ private extension TranscriptionFeature {
         
         let result = try await withThrowingTaskGroup(of: String.self) { group in
           group.addTask {
-            try await transcription.transcribe(capturedURL, model, decodeOptions) { _ in }
+            switch backend {
+            case .local:
+              return try await transcription.transcribe(capturedURL, model, decodeOptions) { _ in }
+            case .groq:
+              let apiKey = try groqAPIKey.load()
+              return try await groqTranscription.transcribe(
+                capturedURL,
+                GroqTranscriptionConfiguration(model: groqModel, apiKey: apiKey, language: language)
+              )
+            }
           }
           group.addTask {
             try await Task.sleep(for: .seconds(TranscriptionFeature.transcriptionTimeoutSeconds))

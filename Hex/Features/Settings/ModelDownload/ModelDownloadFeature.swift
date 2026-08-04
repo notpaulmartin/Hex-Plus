@@ -181,6 +181,7 @@ public struct ModelDownloadFeature {
 	}
 
 	private func updateBootstrapState(_ state: inout State) {
+		guard state.hexSettings.transcriptionBackend == .local else { return }
 		let model = state.hexSettings.selectedModel
 		guard !model.isEmpty else { return }
 		let displayName = curatedDisplayName(for: model, curated: state.curatedModels)

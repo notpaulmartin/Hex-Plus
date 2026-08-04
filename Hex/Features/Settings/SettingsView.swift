@@ -24,8 +24,9 @@ struct SettingsView: View {
 			}
 
 			ModelSectionView(store: store, shouldFlash: store.shouldFlashModelSection)
-			// Only show language picker for WhisperKit models (not Parakeet)
-			if !store.hexSettings.selectedModel.hasPrefix("parakeet-") {
+			// Groq and WhisperKit support a language hint; Parakeet handles language automatically.
+			if store.hexSettings.transcriptionBackend == .groq
+				|| !store.hexSettings.selectedModel.hasPrefix("parakeet-") {
 				LanguageSectionView(store: store)
 			}
 
