@@ -1,11 +1,12 @@
 import ComposableArchitecture
 import HexCore
 import SwiftUI
+import UserNotifications
 
 private let appLogger = HexLog.app
 private let cacheLogger = HexLog.caches
 
-class HexAppDelegate: NSObject, NSApplicationDelegate {
+class HexAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
 	var invisibleWindow: InvisibleWindow?
 	var settingsWindow: NSWindow?
 	var statusItem: NSStatusItem!
@@ -22,6 +23,8 @@ class HexAppDelegate: NSObject, NSApplicationDelegate {
 			appLogger.debug("Running in testing mode")
 			return
 		}
+
+		UNUserNotificationCenter.current().delegate = self
 
 		Task {
 			await soundEffect.preloadSounds()
@@ -133,5 +136,13 @@ class HexAppDelegate: NSObject, NSApplicationDelegate {
 		Task {
 			await recording.cleanup()
 		}
+	}
+
+	func userNotificationCenter(
+		_: UNUserNotificationCenter,
+		willPresent _: UNNotification,
+		withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+	) {
+		completionHandler([.banner, .sound])
 	}
 }

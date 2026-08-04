@@ -82,6 +82,7 @@ struct TranscriptionFeature {
   @Dependency(\.date.now) var now
   @Dependency(\.transcriptPersistence) var transcriptPersistence
   @Dependency(\.llmPostProcessing) var llmPostProcessing
+  @Dependency(\.systemNotification) var systemNotification
   @Dependency(\.groqTranscription) var groqTranscription
   @Dependency(\.groqAPIKey) var groqAPIKey
 
@@ -498,6 +499,10 @@ private extension TranscriptionFeature {
         } catch {
           transcriptionFeatureLogger.error(
             "LLM post-processing failed. Using raw transcription: \(error.localizedDescription, privacy: .public)"
+          )
+          await systemNotification.notify(
+            "LLM processing failed",
+            "Hex used the unprocessed transcription instead. Check your LLM settings or connection."
           )
         }
       }
