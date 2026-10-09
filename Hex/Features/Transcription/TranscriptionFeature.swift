@@ -510,6 +510,7 @@ private extension TranscriptionFeature {
       do {
         try await finalizeRecordingAndStoreTranscript(
           result: finalResult,
+          originalText: result,
           duration: duration,
           sourceAppBundleID: sourceAppBundleID,
           sourceAppName: sourceAppName,
@@ -542,6 +543,7 @@ private extension TranscriptionFeature {
   /// Move file to permanent location, create a transcript record, paste text, and play sound.
   func finalizeRecordingAndStoreTranscript(
     result: String,
+    originalText: String,
     duration: TimeInterval,
     sourceAppBundleID: String?,
     sourceAppName: String?,
@@ -551,13 +553,15 @@ private extension TranscriptionFeature {
     @Shared(.hexSettings) var hexSettings: HexSettings
 
     if hexSettings.saveTranscriptionHistory {
-      let transcript = try await transcriptPersistence.save(
+      var transcript = try await transcriptPersistence.save(
         result,
         audioURL,
         duration,
         sourceAppBundleID,
         sourceAppName
       )
+
+      transcript.originalText = originalText
 
       transcriptionHistory.withLock { history in
         history.history.insert(transcript, at: 0)

@@ -4,6 +4,8 @@ public struct Transcript: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var timestamp: Date
     public var text: String
+    /// Speech-to-text output before word modifications and LLM processing; absent in older history.
+    public var originalText: String?
     public var audioPath: URL
     public var duration: TimeInterval
     public var sourceAppBundleID: String?
@@ -16,11 +18,13 @@ public struct Transcript: Codable, Equatable, Identifiable, Sendable {
         audioPath: URL,
         duration: TimeInterval,
         sourceAppBundleID: String? = nil,
-        sourceAppName: String? = nil
+        sourceAppName: String? = nil,
+        originalText: String? = nil
     ) {
         self.id = id
         self.timestamp = timestamp
         self.text = text
+        self.originalText = originalText
         self.audioPath = audioPath
         self.duration = duration
         self.sourceAppBundleID = sourceAppBundleID

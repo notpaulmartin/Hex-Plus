@@ -219,6 +219,7 @@ struct TranscriptView: View {
 	let isPlaying: Bool
 	let onPlay: () -> Void
 	let onCopy: () -> Void
+	let onCopyOriginal: () -> Void
 	let onDelete: () -> Void
 
 	var body: some View {
@@ -261,18 +262,38 @@ struct TranscriptView: View {
 				HStack(spacing: 10) {
 					Button {
 						onCopy()
-						showCopyAnimation()
+						showCopyAnimation(.final)
 					} label: {
 						HStack(spacing: 4) {
-							Image(systemName: showCopied ? "checkmark" : "doc.on.doc.fill")
-							if showCopied {
+							Image(systemName: copiedVersion == .final ? "checkmark" : "doc.on.doc.fill")
+							if copiedVersion == .final {
 								Text("Copied").font(.caption)
 							}
 						}
 					}
 					.buttonStyle(.plain)
-					.foregroundStyle(showCopied ? .green : .secondary)
-					.help("Copy to clipboard")
+					.foregroundStyle(copiedVersion == .final ? .green : .secondary)
+					.help("Copy transcript")
+					.accessibilityLabel("Copy transcript")
+
+					Button {
+						onCopyOriginal()
+						showCopyAnimation(.original)
+					} label: {
+						HStack(spacing: 4) {
+							Image(systemName: copiedVersion == .original ? "checkmark" : "doc.text")
+							if copiedVersion == .original {
+								Text("Copied").font(.caption)
+							}
+						}
+					}
+					.buttonStyle(.plain)
+					.foregroundStyle(copiedVersion == .original ? .green : .secondary)
+					.disabled(transcript.originalText == nil)
+					.help(transcript.originalText == nil
+						? "Raw transcript wasn’t saved for this entry"
+						: "Copy raw transcript")
+					.accessibilityLabel("Copy raw transcript")
 
 					Button(action: onPlay) {
 						Image(systemName: isPlaying ? "stop.fill" : "play.fill")
@@ -308,21 +329,26 @@ struct TranscriptView: View {
 		}
 	}
 
-	@State private var showCopied = false
+	private enum CopyVersion {
+		case final
+		case original
+	}
+
+	@State private var copiedVersion: CopyVersion?
 	@State private var copyTask: Task<Void, Error>?
 
-	private func showCopyAnimation() {
+	private func showCopyAnimation(_ version: CopyVersion) {
 		copyTask?.cancel()
 
 		copyTask = Task {
 			withAnimation {
-				showCopied = true
+				copiedVersion = version
 			}
 
 			try await Task.sleep(for: .seconds(1.5))
 
 			withAnimation {
-				showCopied = false
+				copiedVersion = nil
 			}
 		}
 	}
@@ -334,6 +360,7 @@ struct TranscriptView: View {
 		isPlaying: false,
 		onPlay: {},
 		onCopy: {},
+		onCopyOriginal: {},
 		onDelete: {}
 	)
 }
@@ -371,6 +398,11 @@ struct HistoryView: View {
                   isPlaying: store.playingTranscriptID == transcript.id,
                   onPlay: { store.send(.playTranscript(transcript.id)) },
                   onCopy: { store.send(.copyToClipboard(transcript.text)) },
+                  onCopyOriginal: {
+                    if let originalText = transcript.originalText {
+                      store.send(.copyToClipboard(originalText))
+                    }
+                  },
                   onDelete: { store.send(.deleteTranscript(transcript.id)) }
                 )
               }
